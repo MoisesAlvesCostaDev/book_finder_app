@@ -10,6 +10,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#DFDFDF',
+    height: 40,
+    flex: 1,
   },
 });
 
