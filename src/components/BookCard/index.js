@@ -13,9 +13,9 @@ function BookCard(cardData) {
       />
       <View style={styles.dataContainer}>
         <Text style={styles.title}> {cardData.item.title} </Text>
-        <Text> Autor: {cardData.item.title} </Text>
-        <Text> Ano publicação: {cardData.item.title} </Text>
-        <Text> Publicado por: {cardData.item.title} </Text>
+        <Text> Autor: {cardData.item.authors} </Text>
+        <Text> Ano publicação: {cardData.item.publishedDate} </Text>
+        <Text> Publicado por: {cardData.item.publisher} </Text>
       </View>
     </View>
   );
@@ -27,7 +27,7 @@ const styles = StyleSheet.create({
     backgroundColor: CARD_BACK_GROUND_COLOR,
     height: 100,
     marginLeft: 5,
-    marginTop: 5,
+    marginTop: 10,
     borderColor: SECONDARY_COLOR,
     borderWidth: 1,
     flexDirection: 'row',
