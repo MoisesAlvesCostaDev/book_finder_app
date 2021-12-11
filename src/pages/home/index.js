@@ -6,6 +6,7 @@ import {
   StatusBar,
   View,
   FlatList,
+  Keyboard,
 } from 'react-native';
 import {SECONDARY_COLOR, TERTIARY_COLOR} from '../../assets/colors/';
 import SimpleInput from '../../components/SimpleInput';
@@ -13,10 +14,14 @@ import ButtonWithIcon from '../../components/ButtonWithIcon';
 import Api from '../../services/Api';
 import BookCard from '../../components/BookCard';
 import {getFormattedDateToPTBR} from '../../util/formatDate';
+import Load from '../../components/Load';
+import {SUCCESS} from '../../misc/httpResponsesStatus';
 
 function Home() {
   const [searchTerm, setSearchTerm] = useState(null);
   const [booksData, setBooksData] = useState([]);
+  const [isload, setIsload] = useState(false);
+  const [message, setMessage] = useState('Clique em localizar');
 
   function getBooksDataMutated(data) {
     const dataMutated = data.map(book => {
@@ -27,7 +32,9 @@ function Home() {
             ? book.volumeInfo.authors.toString()
             : book.volumeInfo.authors,
         title: book.volumeInfo.title.substr(1, 30),
-        publishedDate: getFormattedDateToPTBR(book.volumeInfo.publishedDate),
+        publishedDate:
+          book?.volumeInfo?.publishedDate &&
+          getFormattedDateToPTBR(book?.volumeInfo?.publishedDate),
         publisher: book.volumeInfo.publisher,
         image: book?.volumeInfo?.imageLinks?.smallThumbnail,
       };
@@ -38,10 +45,36 @@ function Home() {
   }
 
   async function getAndSetBooksData() {
-    const response = await Api.get(`/volumes?q=${searchTerm}`);
-    const bookDataMutated = getBooksDataMutated(response.data.items);
-    setBooksData(bookDataMutated);
+    try {
+      setIsload(true);
+      const response = await Api.get(`/volumes?q='${searchTerm}'`);
+      if (response.status === SUCCESS) {
+        const bookDataMutated = getBooksDataMutated(response.data.items);
+
+        if (response.data.items.length <= 0) {
+          setMessage('Lista vazia');
+        }
+        setBooksData(bookDataMutated);
+      } else {
+        setMessage('Erro ao obter livros ');
+        setBooksData([]);
+      }
+    } catch (error) {
+      setMessage('Erro ao obter livros ');
+      setBooksData([]);
+    } finally {
+      setIsload(false);
+    }
   }
+
+
+  const renderIsEmpty = () => {
+    return (
+      <View style={styles.emptyListContainer}>
+        <Text>{message}</Text>
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.homeContainer}>
@@ -67,16 +100,22 @@ function Home() {
             <ButtonWithIcon
               iconName="search"
               onPress={() => {
+                Keyboard.dismiss();
                 getAndSetBooksData();
               }}
             />
           </View>
-          <FlatList
-            style={styles.list}
-            data={booksData}
-            renderItem={BookCard}
-            keyExtractor={item => item.id}
-          />
+          {isload ? (
+            <Load></Load>
+          ) : (
+            <FlatList
+              style={styles.list}
+              data={booksData}
+              renderItem={BookCard}
+              keyExtractor={item => item.id}
+              ListEmptyComponent={isload ? null : renderIsEmpty}
+            />
+          )}
         </View>
       </View>
       <View style={styles.footer} />
@@ -112,9 +151,16 @@ const styles = StyleSheet.create({
   },
   list: {
     marginTop: 10,
+    height: '90%',
   },
   footer: {
     flex: 0.5,
+  },
+  emptyListContainer: {
+    flex: 1,
+    height: 200,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 
