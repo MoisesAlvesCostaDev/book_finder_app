@@ -16,12 +16,14 @@ import BookCard from '../../components/BookCard';
 import {getFormattedDateToPTBR} from '../../util/formatDate';
 import Load from '../../components/Load';
 import {SUCCESS} from '../../misc/httpResponsesStatus';
+let booksIndex = 0;
 
 function Home() {
   const [searchTerm, setSearchTerm] = useState(null);
   const [booksData, setBooksData] = useState([]);
   const [isload, setIsload] = useState(false);
   const [message, setMessage] = useState('Clique em localizar');
+  const maxResults = 10;
 
   function getBooksDataMutated(data) {
     const dataMutated = data.map(book => {
@@ -46,15 +48,16 @@ function Home() {
 
   async function getAndSetBooksData() {
     try {
-      setIsload(true);
-      const response = await Api.get(`/volumes?q='${searchTerm}'`);
+      const response = await Api.get(
+        `/volumes?q='${searchTerm}' &maxResults=${maxResults}&startIndex=${booksIndex}`,
+      );
       if (response.status === SUCCESS) {
         const bookDataMutated = getBooksDataMutated(response.data.items);
 
         if (response.data.items.length <= 0) {
           setMessage('Lista vazia');
         }
-        setBooksData(bookDataMutated);
+        setBooksData([...booksData, ...bookDataMutated]);
       } else {
         setMessage('Erro ao obter livros ');
         setBooksData([]);
@@ -62,11 +65,13 @@ function Home() {
     } catch (error) {
       setMessage('Erro ao obter livros ');
       setBooksData([]);
-    } finally {
-      setIsload(false);
     }
   }
 
+  function addMorBooks() {
+    booksIndex = booksIndex + maxResults + 1;
+    getAndSetBooksData();
+  }
 
   const renderIsEmpty = () => {
     return (
@@ -75,6 +80,13 @@ function Home() {
       </View>
     );
   };
+
+  async function findBooks() {
+    setIsload(true);
+    booksIndex = 0;
+    await getAndSetBooksData();
+    setIsload(false);
+  }
 
   return (
     <SafeAreaView style={styles.homeContainer}>
@@ -101,7 +113,7 @@ function Home() {
               iconName="search"
               onPress={() => {
                 Keyboard.dismiss();
-                getAndSetBooksData();
+                findBooks();
               }}
             />
           </View>
@@ -114,6 +126,10 @@ function Home() {
               renderItem={BookCard}
               keyExtractor={item => item.id}
               ListEmptyComponent={isload ? null : renderIsEmpty}
+              onEndReachedThreshold={0.7}
+              onEndReached={() => {
+                addMorBooks();
+              }}
             />
           )}
         </View>
